@@ -1,0 +1,208 @@
+import asyncHandler from 'express-async-handler';
+import User from '../models/User.js';
+import generateToken from '../config/generateToken.js';
+
+// @desc    Auth user & get token
+// @route   POST /api/auth/login
+// @access  Public
+const authUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (user && (await user.matchPassword(password))) {
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } else {
+    res.status(401);
+    throw new Error('Invalid email or password');
+  }
+});
+
+// @desc    Register a new user
+// @route   POST /api/auth/register
+// @access  Public (or Admin only depending on requirement)
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role, mobile_number, bank_details } = req.body;
+
+  const userExists = await User.findOne({ 
+    $or: [
+      { email },
+      { name },
+      { mobile_number }
+    ]
+  });
+
+  if (userExists) {
+    res.status(400);
+    if (userExists.email === email) throw new Error('User with this email already exists');
+    if (userExists.name === name) throw new Error('User with this name already exists');
+    if (userExists.mobile_number === mobile_number) throw new Error('User with this mobile number already exists');
+  }
+
+  const userData = {
+    name,
+    email,
+    password,
+    role,
+    mobile_number,
+  };
+
+  if (bank_details) {
+    userData.bank_details = {
+      bank_name: bank_details.bank_name,
+      holder_name: bank_details.account_holder || bank_details.holder_name,
+      account_number: bank_details.account_number,
+      ifsc_code: bank_details.ifsc_code,
+      upi: bank_details.upi
+    };
+  }
+
+  const user = await User.create(userData);
+
+  if (user) {
+    res.status(201).json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id),
+    });
+  } else {
+    res.status(400);
+    throw new Error('Invalid user data');
+  }
+});
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  res.json({
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    mobile_number: user.mobile_number,
+    bank_details: user.bank_details,
+  });
+});
+
+// @desc    Get all authors
+// @route   GET /api/auth/authors
+// @access  Private/Admin
+const getAuthors = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const search = req.query.search || '';
+
+  let query = { role: 'author' };
+
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } },
+      { mobile_number: { $regex: search, $options: 'i' } }
+    ];
+  }
+
+  const authors = await User.find(query)
+    .select('name email mobile_number bank_details')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await User.countDocuments(query);
+
+  res.json({
+    data: authors,
+    total,
+    page,
+    pages: Math.ceil(total / limit)
+  });
+});
+
+// @desc    Request password reset
+// @route   POST /api/auth/reset-password
+// @access  Public
+const requestPasswordReset = asyncHandler(async (req, res) => {
+  // Placeholder: In a real app, you'd send an email with a token
+  res.json({ message: 'If a user with that email exists, a reset link will be sent.' });
+});
+
+// @desc    Update a user
+// @route   PUT /api/auth/:id
+// @access  Private/Admin
+const updateUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  user.name = req.body.name || user.name;
+  user.email = req.body.email || user.email;
+  user.mobile_number = req.body.mobile_number || user.mobile_number;
+  user.role = req.body.role || user.role;
+  
+  if (req.body.bank_details) {
+    user.bank_details = {
+      bank_name: req.body.bank_details.bank_name !== undefined ? req.body.bank_details.bank_name : user.bank_details?.bank_name,
+      holder_name: (req.body.bank_details.account_holder !== undefined ? req.body.bank_details.account_holder : 
+                    req.body.bank_details.holder_name !== undefined ? req.body.bank_details.holder_name : 
+                    user.bank_details?.holder_name),
+      account_number: req.body.bank_details.account_number !== undefined ? req.body.bank_details.account_number : user.bank_details?.account_number,
+      ifsc_code: req.body.bank_details.ifsc_code !== undefined ? req.body.bank_details.ifsc_code : user.bank_details?.ifsc_code,
+      upi: req.body.bank_details.upi !== undefined ? req.body.bank_details.upi : user.bank_details?.upi,
+    };
+  }
+
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  const updatedUser = await user.save();
+
+  res.json({
+    id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    mobile_number: updatedUser.mobile_number,
+    bank_details: updatedUser.bank_details,
+  });
+});
+
+// @desc    Delete a user
+// @route   DELETE /api/auth/:id
+// @access  Private/Admin
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Optional: Check if user has associated books in backend or just allow delete
+  // For now, allow delete but return success
+  await User.findByIdAndDelete(req.params.id);
+  res.json({ message: 'User removed successfully' });
+});
+
+export { authUser, registerUser, getUserProfile, getAuthors, requestPasswordReset, updateUser, deleteUser };
+
