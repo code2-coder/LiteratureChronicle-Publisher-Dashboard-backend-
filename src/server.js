@@ -27,6 +27,7 @@ const app = express();
 // Middleware - CORS MUST be first to handle preflight requests
 const allowedOrigins = [
   'https://literature-chronicle-publisher-dash.vercel.app',
+  'https://literature-chronicle-publisher-dashboard-frontend-reg0jq3dn.vercel.app',
   'https://literaturechronicle-publisher-dashboard-8yda.onrender.com',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
