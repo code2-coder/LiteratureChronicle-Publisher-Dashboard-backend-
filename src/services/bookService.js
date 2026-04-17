@@ -8,7 +8,8 @@ export const getAllBooks = async (query = {}, options = {}) => {
     .populate('authorId', 'name email')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
 
   const total = await Book.countDocuments(query);
 
@@ -21,7 +22,7 @@ export const getAllBooks = async (query = {}, options = {}) => {
 };
 
 export const getBookById = async (id) => {
-  return await Book.findById(id).populate('authorId', 'name email');
+  return await Book.findById(id).populate('authorId', 'name email').lean();
 };
 
 export const createNewBook = async (bookData) => {

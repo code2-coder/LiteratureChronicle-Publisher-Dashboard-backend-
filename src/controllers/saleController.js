@@ -38,7 +38,8 @@ const getSales = asyncHandler(async (req, res) => {
     .skip(skip)
     .limit(limit)
     .populate('platformId', 'commission_percentage')
-    .populate('bookId', 'printing_cost format');
+    .populate('bookId', 'printing_cost format')
+    .lean();
 
   res.json({
     data: sales,

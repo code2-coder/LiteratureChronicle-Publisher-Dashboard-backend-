@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import hpp from 'hpp';
@@ -30,6 +31,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ];
+
+app.use(compression());
 
 app.use(cors({
   origin: function(origin, callback) {

@@ -46,6 +46,7 @@ const bookSchema = new mongoose.Schema({
 bookSchema.index({ authorId: 1 });
 bookSchema.index({ sku_code: 1 });
 bookSchema.index({ isbn: 1 });
+bookSchema.index({ title: 'text' });
 
 const Book = mongoose.model('Book', bookSchema);
 
