@@ -3,6 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import hpp from 'hpp';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 
@@ -15,6 +17,9 @@ import royaltyRoutes from './routes/royaltyRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -37,7 +42,16 @@ app.use('/api', limiter);
 app.use(cors());
 app.use(express.json());
 
-// Routes
+// Health Check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Serve frontend static files in production
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/platforms', platformRoutes);
@@ -45,9 +59,12 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/royalties', royaltyRoutes);
 
-// Health Check
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+// Catch-all route to serve the frontend index.html for SPA
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ message: 'API Route Not Found' });
+  }
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.get('/', (req, res) => {
