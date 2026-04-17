@@ -99,9 +99,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Bind to all network interfaces
 
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
+  console.log(`Server bound to ${HOST}:${PORT}`);
+  console.log('Press CTRL-C to stop');
 });
 
 // Handle graceful shutdown
