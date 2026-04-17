@@ -27,10 +27,19 @@ const getRoyalties = asyncHandler(async (req, res) => {
 
   // Search Logic
   if (search) {
-    query.$or = [
-      { author_name: { $regex: search, $options: 'i' } },
-      { author_contact_number: { $regex: search, $options: 'i' } }
-    ];
+    const searchFilter = {
+      $or: [
+        { author_name: { $regex: search, $options: 'i' } },
+        { author_contact_number: { $regex: search, $options: 'i' } }
+      ]
+    };
+    
+    // If we already have filters (like author restriction), use $and
+    if (Object.keys(query).length > 0) {
+      query = { $and: [query, searchFilter] };
+    } else {
+      query = searchFilter;
+    }
   }
 
   const total = await Royalty.countDocuments(query);
