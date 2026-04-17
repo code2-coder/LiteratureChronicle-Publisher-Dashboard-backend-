@@ -23,11 +23,35 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// Middleware - CORS MUST be first to handle preflight requests
+const allowedOrigins = [
+  'https://literature-chronicle-publisher-dash.vercel.app',
+  'https://literaturechronicle-publisher-dashboard-8yda.onrender.com',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // Connect to Database
 connectDB();
 
 // Security Middleware
-app.use(helmet()); 
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  contentSecurityPolicy: false, // Disable CSP for simplicity in this dashboard environment, or configure it carefully
+})); 
 app.use(hpp());
 
 // Rate Limiting
@@ -38,8 +62,7 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Middleware
-app.use(cors());
+// Body Parser
 app.use(express.json());
 
 // Health Check
