@@ -8,10 +8,15 @@ const getBooks = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const search = req.query.search || '';
+  const format = req.query.format || '';
 
   let query = {};
   if (req.user.role !== 'admin') {
     query.authorId = req.user._id;
+  }
+
+  if (format && format !== 'all') {
+    query.format = format;
   }
 
   // Search filter
@@ -50,7 +55,7 @@ const getBookById = asyncHandler(async (req, res) => {
 // @route   POST /api/books
 // @access  Private/Admin
 const createBook = asyncHandler(async (req, res) => {
-  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format } = req.body;
+  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format, pages } = req.body;
 
   const bookData = {
     title,
@@ -61,6 +66,7 @@ const createBook = asyncHandler(async (req, res) => {
     authorId,
     book_sizes,
     format,
+    pages: parseInt(pages) || 0,
     book_cover: req.file ? req.file.path : (req.body.book_cover || ''),
   };
 
@@ -72,7 +78,7 @@ const createBook = asyncHandler(async (req, res) => {
 // @route   PUT /api/books/:id
 // @access  Private/Admin
 const updateBook = asyncHandler(async (req, res) => {
-  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format } = req.body;
+  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format, pages } = req.body;
 
   const updateData = {
     title,
@@ -83,6 +89,7 @@ const updateBook = asyncHandler(async (req, res) => {
     authorId,
     book_sizes,
     format,
+    pages: parseInt(pages) || 0,
   };
 
   if (req.file) {

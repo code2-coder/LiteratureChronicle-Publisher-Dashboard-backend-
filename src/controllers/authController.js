@@ -135,13 +135,41 @@ const getAuthors = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Request password reset
-// @route   POST /api/auth/reset-password
-// @access  Public
-const requestPasswordReset = asyncHandler(async (req, res) => {
-  // Placeholder: In a real app, you'd send an email with a token
-  res.json({ message: 'If a user with that email exists, a reset link will be sent.' });
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  user.name = req.body.name || user.name;
+  user.email = req.body.email || user.email;
+  user.mobile_number = req.body.mobile_number || user.mobile_number;
+
+  if (req.body.password) {
+    user.password = req.body.password;
+  }
+
+  // SECURITY: Bank details can ONLY be updated by Admin via the /api/auth/:id route.
+  // We explicitly ignore bank_details here to prevent authors from editing their own settlements.
+
+  const updatedUser = await user.save();
+
+  res.json({
+    id: updatedUser._id,
+    name: updatedUser.name,
+    email: updatedUser.email,
+    role: updatedUser.role,
+    mobile_number: updatedUser.mobile_number,
+    bank_details: updatedUser.bank_details, // Return current values (unchanged)
+  });
 });
+
+
 
 // @desc    Update a user
 // @route   PUT /api/auth/:id
@@ -204,5 +232,5 @@ const deleteUser = asyncHandler(async (req, res) => {
   res.json({ message: 'User removed successfully' });
 });
 
-export { authUser, registerUser, getUserProfile, getAuthors, requestPasswordReset, updateUser, deleteUser };
+export { authUser, registerUser, getUserProfile, getAuthors, updateUser, updateUserProfile, deleteUser };
 
