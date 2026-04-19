@@ -55,18 +55,11 @@ const getBookById = asyncHandler(async (req, res) => {
 // @route   POST /api/books
 // @access  Private/Admin
 const createBook = asyncHandler(async (req, res) => {
-  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format, pages } = req.body;
-
   const bookData = {
-    title,
-    isbn,
-    mrp,
-    printing_cost,
-    sku_code,
-    authorId,
-    book_sizes,
-    format,
-    pages: parseInt(pages) || 0,
+    ...req.body,
+    mrp: parseFloat(req.body.mrp) || 0,
+    printing_cost: parseFloat(req.body.printing_cost) || 0,
+    pages: parseInt(req.body.pages) || 0,
     book_cover: req.file ? req.file.path : (req.body.book_cover || ''),
   };
 
@@ -78,18 +71,11 @@ const createBook = asyncHandler(async (req, res) => {
 // @route   PUT /api/books/:id
 // @access  Private/Admin
 const updateBook = asyncHandler(async (req, res) => {
-  const { title, isbn, mrp, printing_cost, sku_code, authorId, book_sizes, format, pages } = req.body;
-
   const updateData = {
-    title,
-    isbn,
-    mrp,
-    printing_cost,
-    sku_code,
-    authorId,
-    book_sizes,
-    format,
-    pages: parseInt(pages) || 0,
+    ...req.body,
+    mrp: parseFloat(req.body.mrp) || 0,
+    printing_cost: parseFloat(req.body.printing_cost) || 0,
+    pages: parseInt(req.body.pages) || 0,
   };
 
   if (req.file) {
