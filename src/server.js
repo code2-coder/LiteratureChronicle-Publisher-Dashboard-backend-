@@ -102,23 +102,26 @@ app.get('/', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-const HOST = '0.0.0.0'; // Bind to all network interfaces
+// Export the app for Vercel
+export default app;
 
-const server = app.listen(PORT, HOST, () => {
-  console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
-  console.log(`Server bound to ${HOST}:${PORT}`);
-  console.log('Press CTRL-C to stop');
-});
-
-// Handle graceful shutdown
-const gracefulShutdown = () => {
-  console.log('Shutting down server...');
-  server.close(() => {
-    console.log('Server closed.');
-    process.exit(0);
+// Only listen when running locally
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  const HOST = '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`Server bound to ${HOST}:${PORT}`);
   });
-};
+}
 
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
+// Handle graceful shutdown - only in non-Vercel environment
+if (!process.env.VERCEL) {
+  const gracefulShutdown = () => {
+    console.log('Shutting down server...');
+    process.exit(0);
+  };
+
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
+}
