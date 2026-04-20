@@ -26,14 +26,14 @@ const app = express();
 
 // Middleware - CORS MUST be first to handle preflight requests
 const allowedOrigins = [
+  'https://www.dashboard-literaturechronicle.com',
+  'https://dashboard-literaturechronicle.com',
   'https://literature-chronicle-publisher-dash.vercel.app',
   'https://literature-chronicle-publisher-dashboard-frontend-reg0jq3dn.vercel.app',
   'https://literaturechronicle-publisher-dashboard-8yda.onrender.com',
   'http://localhost:3000',
   'http://127.0.0.1:3000'
 ];
-
-app.use(compression());
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -47,6 +47,8 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+app.use(compression());
 
 // Connect to Database
 connectDB();
@@ -105,13 +107,13 @@ app.use(errorHandler);
 // Export the app for Vercel
 export default app;
 
-// Only listen when running locally
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// Only listen when not in Vercel environment (Vercel handles execution via export)
+if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   const HOST = '0.0.0.0';
   app.listen(PORT, HOST, () => {
     console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode`);
-    console.log(`Server bound to ${HOST}:${PORT}`);
+    console.log(`Server URL: http://localhost:${PORT}`);
   });
 }
 
