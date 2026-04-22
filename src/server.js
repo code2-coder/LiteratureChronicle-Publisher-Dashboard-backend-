@@ -107,6 +107,9 @@ app.use(errorHandler);
 // Export the app for Vercel
 export default app;
 
+
+
+
 // Only listen when not in Vercel environment (Vercel handles execution via export)
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;

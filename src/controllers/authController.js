@@ -1,5 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import User from '../models/User.js';
+import Sale from '../models/Sale.js';
+import Royalty from '../models/Royalty.js';
 import generateToken from '../config/generateToken.js';
 
 // @desc    Auth user & get token
@@ -90,6 +92,60 @@ const getUserProfile = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
+  // 2. Fetch Aggregated stats for the profile (single author)
+  const salesStats = await Sale.aggregate([
+    { $match: { authorId: user._id } },
+    {
+      $lookup: {
+        from: 'platforms',
+        localField: 'platformId',
+        foreignField: '_id',
+        as: 'platform'
+      }
+    },
+    { $unwind: { path: '$platform', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'books',
+        localField: 'bookId',
+        foreignField: '_id',
+        as: 'book'
+      }
+    },
+    { $unwind: { path: '$book', preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        royaltyPerBook: {
+          $subtract: [
+            { $multiply: ["$mrp", { $subtract: [1, { $divide: [{ $ifNull: ["$platform.commission_percentage", 0] }, 100] }] }] },
+            { $cond: [ { $eq: ["$format", "physical"] }, { $ifNull: ["$book.printing_cost", 0] }, 0 ] }
+          ]
+        }
+      }
+    },
+    {
+      $group: {
+        _id: "$authorId",
+        totalRoyalty: { $sum: { $multiply: ["$royaltyPerBook", "$quantity"] } },
+        totalQuantitySold: { $sum: "$quantity" }
+      }
+    }
+  ]);
+
+  const paymentsStats = await Royalty.aggregate([
+    { $match: { author_contact_number: user.mobile_number } },
+    {
+      $group: {
+        _id: "$author_contact_number",
+        totalPayments: { $sum: "$paid_amount" }
+      }
+    }
+  ]);
+
+  const totalRoyalty = salesStats.length > 0 ? Math.max(0, salesStats[0].totalRoyalty) : 0;
+  const totalQuantitySold = salesStats.length > 0 ? salesStats[0].totalQuantitySold : 0;
+  const totalPayments = paymentsStats.length > 0 ? paymentsStats[0].totalPayments : 0;
+
   res.json({
     id: user._id,
     name: user.name,
@@ -97,6 +153,12 @@ const getUserProfile = asyncHandler(async (req, res) => {
     role: user.role,
     mobile_number: user.mobile_number,
     bank_details: user.bank_details,
+    stats: {
+      totalRoyalty,
+      totalPayments,
+      balance: Math.max(0, totalRoyalty - totalPayments),
+      totalQuantitySold
+    }
   });
 });
 
@@ -123,12 +185,84 @@ const getAuthors = asyncHandler(async (req, res) => {
     .select('name email mobile_number bank_details')
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
 
   const total = await User.countDocuments(query);
 
+  // 2. Fetch Aggregated stats for the authors (can be optimized but let's do robust aggregation first)
+  // Get all relevant author IDs and mobile numbers
+  const authorIds = authors.map(a => a._id);
+  const mobileNumbers = authors.map(a => a.mobile_number).filter(Boolean);
+
+  // Sales Stats Aggregation
+  const salesStats = await Sale.aggregate([
+    { $match: { authorId: { $in: authorIds } } },
+    {
+      $lookup: {
+        from: 'platforms',
+        localField: 'platformId',
+        foreignField: '_id',
+        as: 'platform'
+      }
+    },
+    { $unwind: { path: '$platform', preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: 'books',
+        localField: 'bookId',
+        foreignField: '_id',
+        as: 'book'
+      }
+    },
+    { $unwind: { path: '$book', preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        royaltyPerBook: {
+          $subtract: [
+            { $multiply: ["$mrp", { $subtract: [1, { $divide: [{ $ifNull: ["$platform.commission_percentage", 0] }, 100] }] }] },
+            { $cond: [ { $eq: ["$format", "physical"] }, { $ifNull: ["$book.printing_cost", 0] }, 0 ] }
+          ]
+        }
+      }
+    },
+    {
+      $group: {
+        _id: "$authorId",
+        totalRoyalty: { $sum: { $multiply: ["$royaltyPerBook", "$quantity"] } }
+      }
+    }
+  ]);
+
+  // Payments Stats Aggregation
+  const paymentsStats = await Royalty.aggregate([
+    { $match: { author_contact_number: { $in: mobileNumbers } } },
+    {
+      $group: {
+        _id: "$author_contact_number",
+        totalPayments: { $sum: "$paid_amount" }
+      }
+    }
+  ]);
+
+  // 3. Merge stats into authors array
+  const enrichedAuthors = authors.map(author => {
+    const sStat = salesStats.find(s => s._id.toString() === author._id.toString());
+    const pStat = paymentsStats.find(p => p._id === author.mobile_number);
+    
+    const totalRoyalty = sStat ? Math.max(0, sStat.totalRoyalty) : 0;
+    const totalPayments = pStat ? pStat.totalPayments : 0;
+    
+    return {
+      ...author,
+      totalRoyalty,
+      totalPayments,
+      balance: Math.max(0, totalRoyalty - totalPayments)
+    };
+  });
+
   res.json({
-    data: authors,
+    data: enrichedAuthors,
     total,
     page,
     pages: Math.ceil(total / limit)

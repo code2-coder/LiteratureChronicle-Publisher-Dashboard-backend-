@@ -47,7 +47,7 @@ const getRoyalties = asyncHandler(async (req, res) => {
     .sort({ payment_date: -1 })
     .skip(skip)
     .limit(limit)
-    .populate('authorId', 'name mobile_number');
+    .populate('authorId', 'name mobile_number bank_details');
 
   res.json({
     data: royalties,
