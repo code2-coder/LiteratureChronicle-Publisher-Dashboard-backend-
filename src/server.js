@@ -125,25 +125,31 @@ app.use('/api/royalties', royaltyRoutes);
 
 // Serve frontend static files and handle SPA routing
 if (fs.existsSync(frontendPath)) {
+  console.log(`[Production] Serving static files from: ${frontendPath}`);
   app.use(express.static(frontendPath));
+  
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ message: 'API Route Not Found' });
     }
+    
     const indexHtml = path.resolve(frontendPath, 'index.html');
+    console.log(`[Production] Attempting to serve: ${indexHtml}`);
+    
     if (fs.existsSync(indexHtml)) {
       res.sendFile(indexHtml);
     } else {
-      res.status(404).send('Frontend build folder exists but index.html is missing.');
+      console.error(`[Production] ERROR: index.html not found at ${indexHtml}`);
+      res.status(404).send(`Frontend folder exists, but index.html is missing at: ${indexHtml}`);
     }
   });
 } else {
-  // Fallback for when frontend is not built
+  console.warn(`[Production] WARNING: Frontend build folder NOT FOUND at: ${frontendPath}`);
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ message: 'API Route Not Found' });
     }
-    res.status(404).send('Frontend build not found. Please ensure "npm run build" is part of your build command.');
+    res.status(404).send(`Frontend build not found. Path checked: ${frontendPath}. Please ensure "npm run build" is part of your build command.`);
   });
 }
 
