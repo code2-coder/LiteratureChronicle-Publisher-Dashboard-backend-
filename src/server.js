@@ -43,9 +43,18 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // In development, be more permissive with origins to avoid CORS issues
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.error(`CORS Blocked: Origin ${origin} is not in the whitelist`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -108,7 +117,18 @@ app.get('/', (req, res) => {
 
 // Error Handling Middleware
 app.use(notFound);
-app.use(errorHandler);
+app.use((err, req, res, next) => {
+  // Log the error for server-side debugging
+  console.error('--- SERVER ERROR ---');
+  console.error(`Method: ${req.method} URL: ${req.originalUrl}`);
+  console.error(err.stack);
+  
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode).json({
+    message: err.message,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
+});
 
 // Export the app for Vercel
 export default app;
