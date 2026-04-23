@@ -87,6 +87,9 @@ app.use('/api', limiter);
 // Body Parser
 app.use(express.json());
 
+// Resolve paths
+const frontendPath = path.resolve(__dirname, '../../frontend/dist');
+
 // Health Check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -107,8 +110,9 @@ app.get('/reset-password/:token', (req, res) => {
   
   // In Production (Render/Vercel):
   // Check if frontend build exists, if not, serve the built-in backend reset page
-  if (fs.existsSync(path.resolve(frontendPath, 'index.html'))) {
-    res.sendFile(path.resolve(frontendPath, 'index.html'));
+  const indexHtml = path.resolve(frontendPath, 'index.html');
+  if (fs.existsSync(indexHtml)) {
+    res.sendFile(indexHtml);
   } else {
     res.sendFile(path.resolve(__dirname, 'reset-password.html'));
   }
@@ -120,15 +124,18 @@ app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/royalties', royaltyRoutes);
 
 // Serve frontend static files and handle SPA routing
-const frontendPath = path.resolve(__dirname, '../../frontend/dist');
-
 if (fs.existsSync(frontendPath)) {
   app.use(express.static(frontendPath));
   app.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ message: 'API Route Not Found' });
     }
-    res.sendFile(path.resolve(frontendPath, 'index.html'));
+    const indexHtml = path.resolve(frontendPath, 'index.html');
+    if (fs.existsSync(indexHtml)) {
+      res.sendFile(indexHtml);
+    } else {
+      res.status(404).send('Frontend build folder exists but index.html is missing.');
+    }
   });
 } else {
   // Fallback for when frontend is not built
