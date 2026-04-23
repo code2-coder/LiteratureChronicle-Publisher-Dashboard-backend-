@@ -95,6 +95,18 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
+
+// Development Redirect: If user hits the reset link on the backend port, send them to the frontend port
+app.get('/reset-password/:token', (req, res) => {
+  let host = req.get('host');
+  if (host.includes('localhost') || host.includes('127.0.0.1')) {
+    const frontendURL = `${req.protocol}://${host.replace('8080', '3000')}/reset-password/${req.params.token}`;
+    return res.redirect(frontendURL);
+  }
+  // Fallback to normal SPA routing if not local
+  res.sendFile(path.resolve(frontendPath, 'index.html'));
+});
+
 app.use('/api/platforms', platformRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
