@@ -33,6 +33,8 @@ const userSchema = new mongoose.Schema({
     holder_name: String,
     upi: String,
   },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
 }, {
   timestamps: true,
 });
