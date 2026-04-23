@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import cors from 'cors';
 import compression from 'compression';
 import dotenv from 'dotenv';
@@ -91,10 +92,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-// Serve frontend static files in production
-const frontendPath = path.join(__dirname, '../../frontend/dist');
-app.use(express.static(frontendPath));
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
@@ -103,13 +100,26 @@ app.use('/api/sales', saleRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);
 app.use('/api/royalties', royaltyRoutes);
 
-// Catch-all route to serve the frontend index.html for SPA
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ message: 'API Route Not Found' });
-  }
-  res.sendFile(path.join(frontendPath, 'index.html'));
-});
+// Serve frontend static files and handle SPA routing
+const frontendPath = path.resolve(__dirname, '../../frontend/dist');
+
+if (fs.existsSync(frontendPath)) {
+  app.use(express.static(frontendPath));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ message: 'API Route Not Found' });
+    }
+    res.sendFile(path.resolve(frontendPath, 'index.html'));
+  });
+} else {
+  // Fallback for when frontend is not built
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ message: 'API Route Not Found' });
+    }
+    res.status(404).send('Frontend build not found. Please ensure "npm run build" is part of your build command.');
+  });
+}
 
 app.get('/', (req, res) => {
   res.send('API is running...');
