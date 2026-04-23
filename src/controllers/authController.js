@@ -354,8 +354,11 @@ const updateUser = asyncHandler(async (req, res) => {
 // @desc    Forgot Password
 // @route   POST /api/auth/forgot-password
 // @access  Public
+// @desc    Forgot Password (Secure Token Flow)
+// @route   POST /api/auth/forgot-password
+// @access  Public
 const forgotPassword = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email });
+  const user = await User.findOne({ email: req.body.email.trim() });
 
   if (!user) {
     res.status(404);
@@ -376,10 +379,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
   await user.save();
 
-  // Create reset url
-  const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+  // Create reset url (pointing to frontend)
+  // In development (port 8080), we must redirect the user to the Vite dev server (port 3000).
+  let host = req.get('host');
+  if (host.includes('8080')) {
+    host = host.replace('8080', '3000');
+  }
+  const resetUrl = `${req.protocol}://${host}/reset-password/${resetToken}`;
 
-  const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a put request to: \n\n ${resetUrl}`;
+  const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click the link below to reset your password: \n\n ${resetUrl}`;
 
   try {
     await sendEmail({
@@ -391,10 +399,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, data: 'Email sent' });
   } catch (err) {
-    console.error(err);
+    console.error('Email Error:', err);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
-
     await user.save();
 
     res.status(500);
