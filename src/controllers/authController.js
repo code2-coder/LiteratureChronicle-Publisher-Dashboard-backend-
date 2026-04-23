@@ -386,6 +386,9 @@ const forgotPassword = asyncHandler(async (req, res) => {
     host = host.replace('8080', '3000');
   }
   const resetUrl = `${req.protocol}://${host}/reset-password/${resetToken}`;
+  console.log('--- GENERATED RESET URL ---');
+  console.log(resetUrl);
+  console.log('---------------------------');
 
   const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click the link below to reset your password: \n\n ${resetUrl}`;
 
