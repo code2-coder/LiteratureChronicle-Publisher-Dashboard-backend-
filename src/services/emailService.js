@@ -6,7 +6,7 @@ const sendEmail = async (options) => {
     port: 587,
     secure: false, 
     auth: {
-      user: 'vp0303739@gmail.com',
+      user: 'codefusionprojects@gmail.com',
       pass: 'askz mvwg cjle btsl'.replace(/\s/g, ''),
     },
   });
