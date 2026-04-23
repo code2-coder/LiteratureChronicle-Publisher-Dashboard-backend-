@@ -96,15 +96,22 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 
-// Development Redirect: If user hits the reset link on the backend port, send them to the frontend port
+// Development Redirect & Standalone Reset Page
 app.get('/reset-password/:token', (req, res) => {
   let host = req.get('host');
+  // If local dev, redirect to Vite port 3000
   if (host.includes('localhost') || host.includes('127.0.0.1')) {
     const frontendURL = `${req.protocol}://${host.replace('8080', '3000')}/reset-password/${req.params.token}`;
     return res.redirect(frontendURL);
   }
-  // Fallback to normal SPA routing if not local
-  res.sendFile(path.resolve(frontendPath, 'index.html'));
+  
+  // In Production (Render/Vercel):
+  // Check if frontend build exists, if not, serve the built-in backend reset page
+  if (fs.existsSync(path.resolve(frontendPath, 'index.html'))) {
+    res.sendFile(path.resolve(frontendPath, 'index.html'));
+  } else {
+    res.sendFile(path.resolve(__dirname, 'reset-password.html'));
+  }
 });
 
 app.use('/api/platforms', platformRoutes);
