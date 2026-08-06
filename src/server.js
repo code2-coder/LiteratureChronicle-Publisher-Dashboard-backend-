@@ -16,7 +16,7 @@ import platformRoutes from './routes/platformRoutes.js';
 import saleRoutes from './routes/saleRoutes.js';
 import withdrawalRoutes from './routes/withdrawalRoutes.js';
 import royaltyRoutes from './routes/royaltyRoutes.js';
-import { errorHandler, notFound } from './middleware/errorMiddleware.js';
+import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
 dotenv.config();
 
@@ -159,18 +159,7 @@ app.get('/', (req, res) => {
 
 // Error Handling Middleware
 app.use(notFound);
-app.use((err, req, res, next) => {
-  // Log the error for server-side debugging
-  console.error('--- SERVER ERROR ---');
-  console.error(`Method: ${req.method} URL: ${req.originalUrl}`);
-  console.error(err.stack);
-  
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode).json({
-    message: err.message,
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
-  });
-});
+app.use(errorHandler);
 
 // Export the app for Vercel
 export default app;

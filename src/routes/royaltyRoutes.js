@@ -1,6 +1,6 @@
 import express from 'express';
 import { getRoyalties, createRoyalty, updateRoyalty, deleteRoyalty, bulkUploadRoyalties } from '../controllers/royaltyController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 

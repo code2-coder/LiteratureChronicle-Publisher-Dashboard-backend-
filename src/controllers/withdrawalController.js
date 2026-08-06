@@ -1,51 +1,85 @@
 import asyncHandler from 'express-async-handler';
-import WithdrawalRequest from '../models/WithdrawalRequest.js';
+import * as withdrawalService from '../services/withdrawalService.js';
+import User from '../models/User.js';
 
 // @desc    Get author withdrawal requests
 // @route   GET /api/withdrawals
 // @access  Private
-const getWithdrawals = asyncHandler(async (req, res) => {
+export const getWithdrawals = asyncHandler(async (req, res) => {
   let query = {};
   if (req.user.role !== 'admin') {
     query.authorId = req.user._id;
   }
-  const withdrawals = await WithdrawalRequest.find(query).sort({ createdAt: -1 });
+  const withdrawals = await withdrawalService.getWithdrawals(query);
   res.json(withdrawals);
 });
 
 // @desc    Create a withdrawal request
 // @route   POST /api/withdrawals
 // @access  Private
-const createWithdrawal = asyncHandler(async (req, res) => {
-  const { amount } = req.body;
+export const createWithdrawal = asyncHandler(async (req, res) => {
+  const { authorId, amount, bank_details, status } = req.body;
 
-  const withdrawal = await WithdrawalRequest.create({
-    authorId: req.user._id,
+  let targetAuthorId = req.user._id;
+  let targetBankDetails = req.user.bank_details;
+  let targetStatus = 'pending';
+
+  if (req.user.role === 'admin') {
+    if (authorId) {
+      targetAuthorId = authorId;
+      if (!bank_details) {
+        const targetUser = await User.findById(authorId);
+        if (targetUser) {
+          targetBankDetails = targetUser.bank_details;
+        }
+      } else {
+        targetBankDetails = bank_details;
+      }
+    }
+    if (status) {
+      targetStatus = status;
+    }
+  }
+
+  const withdrawal = await withdrawalService.createWithdrawal(
+    targetAuthorId,
     amount,
-    bank_details: req.user.bank_details,
-  });
+    targetBankDetails,
+    targetStatus
+  );
   res.status(201).json(withdrawal);
 });
 
-// @desc    Update withdrawal status
+// @desc    Update withdrawal request details/status
 // @route   PUT /api/withdrawals/:id
-// @access  Private/Admin
-const updateWithdrawalStatus = asyncHandler(async (req, res) => {
-  const { status } = req.body;
+// @access  Private
+export const updateWithdrawal = asyncHandler(async (req, res) => {
+  const { status, amount, bank_details } = req.body;
+  const updatedWithdrawal = await withdrawalService.updateWithdrawal(
+    req.params.id,
+    req.user,
+    { status, amount, bank_details }
+  );
 
-  const withdrawal = await WithdrawalRequest.findById(req.params.id);
-
-  if (!withdrawal) {
+  if (!updatedWithdrawal) {
     res.status(404);
-    throw new Error('Withdrawal not found');
+    throw new Error('Withdrawal request not found or unauthorized to update');
   }
 
-  withdrawal.status = status;
-  if (status === 'processed') {
-    withdrawal.processed_at = Date.now();
-  }
-  const updatedWithdrawal = await withdrawal.save();
   res.json(updatedWithdrawal);
 });
 
-export { getWithdrawals, createWithdrawal, updateWithdrawalStatus };
+// @desc    Delete withdrawal request
+// @route   DELETE /api/withdrawals/:id
+// @access  Private
+export const deleteWithdrawal = asyncHandler(async (req, res) => {
+  const success = await withdrawalService.deleteWithdrawal(req.params.id, req.user);
+
+  if (!success) {
+    res.status(404);
+    throw new Error('Withdrawal request not found or unauthorized to delete');
+  }
+
+  res.json({ message: 'Withdrawal request removed' });
+});
+

@@ -1,6 +1,6 @@
 import express from 'express';
 import { getPlatforms, createPlatform, updatePlatform, deletePlatform } from '../controllers/platformController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 

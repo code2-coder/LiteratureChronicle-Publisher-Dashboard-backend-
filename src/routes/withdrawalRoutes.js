@@ -1,6 +1,6 @@
 import express from 'express';
-import { getWithdrawals, createWithdrawal, updateWithdrawalStatus } from '../controllers/withdrawalController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { getWithdrawals, createWithdrawal, updateWithdrawal, deleteWithdrawal } from '../controllers/withdrawalController.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -9,6 +9,7 @@ router.route('/')
   .post(protect, createWithdrawal);
 
 router.route('/:id')
-  .put(protect, admin, updateWithdrawalStatus);
+  .put(protect, updateWithdrawal)
+  .delete(protect, deleteWithdrawal);
 
 export default router;

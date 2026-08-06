@@ -1,8 +1,9 @@
 import express from 'express';
 import { getBooks, getBookById, createBook, updateBook, deleteBook } from '../controllers/bookController.js';
-import { protect, admin } from '../middleware/authMiddleware.js';
+import { protect, admin } from '../middlewares/authMiddleware.js';
 import { upload } from '../config/cloudinary.js';
-import { validate, bookValidation } from '../middleware/validationMiddleware.js';
+import { validate } from '../middlewares/validationMiddleware.js';
+import { bookValidation } from '../validators/bookValidator.js';
 
 const router = express.Router();
 

@@ -1,0 +1,13 @@
+{
+  "watch": ["src"],
+  "ext": "js,mjs,cjs",
+  "ignore": [
+    "src/**/*.test.js",
+    "node_modules/**",
+    "*.env",
+    ".env",
+    "*.json"
+  ],
+  "delay": 1000,
+  "exec": "node src/server.js"
+}
