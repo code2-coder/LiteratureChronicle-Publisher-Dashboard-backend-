@@ -5,15 +5,31 @@ import generateToken from '../config/generateToken.js';
 import crypto from 'crypto';
 
 export const loginUser = async (email, password) => {
-  const user = await User.findOne({ email });
+  const normalizedEmail = email ? email.trim().toLowerCase() : '';
+  console.log(`[Login Debug] Login email attempt: "${normalizedEmail}"`);
 
-  if (user && (await user.matchPassword(password))) {
+  const user = await User.findOne({ email: normalizedEmail });
+  
+  if (!user) {
+    console.log(`[Login Debug] User found or not: NOT found`);
+    return null;
+  }
+  
+  console.log(`[Login Debug] User found or not: FOUND`);
+  console.log(`[Login Debug] Stored password exists: ${!!user.password}`);
+
+  const isMatch = await user.matchPassword(password);
+  console.log(`[Login Debug] bcrypt.compare result: ${isMatch}`);
+
+  if (isMatch) {
+    const token = generateToken(user._id);
+    console.log(`[Login Debug] JWT generated: ${!!token}`);
     return {
       id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
-      token: generateToken(user._id),
+      token,
     };
   }
   return null;
@@ -21,13 +37,14 @@ export const loginUser = async (email, password) => {
 
 export const registerNewUser = async (userData) => {
   const { name, email, password, role, mobile_number, bank_details } = userData;
+  const normalizedEmail = email ? email.trim().toLowerCase() : '';
 
   const userExists = await User.findOne({ 
-    $or: [{ email }, { name }, { mobile_number }]
+    $or: [{ email: normalizedEmail }, { name }, { mobile_number }]
   });
 
   if (userExists) {
-    if (userExists.email === email) throw new Error('User with this email already exists');
+    if (userExists.email.trim().toLowerCase() === normalizedEmail) throw new Error('User with this email already exists');
     if (userExists.name === name) throw new Error('User with this name already exists');
     if (userExists.mobile_number === mobile_number) throw new Error('User with this mobile number already exists');
   }
@@ -279,7 +296,8 @@ export const adminUpdateUser = async (userId, updateFields) => {
 };
 
 export const createPasswordResetToken = async (email) => {
-  const user = await User.findOne({ email: email.trim() });
+  const normalizedEmail = email ? email.trim().toLowerCase() : '';
+  const user = await User.findOne({ email: normalizedEmail });
   if (!user) return null;
 
   const resetToken = crypto.randomBytes(20).toString('hex');
