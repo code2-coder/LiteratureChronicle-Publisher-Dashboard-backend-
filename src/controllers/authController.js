@@ -133,9 +133,13 @@ export const forgotPassword = asyncHandler(async (req, res) => {
 
     res.status(200).json({ success: true, message: 'OTP sent successfully' });
   } catch (err) {
-    console.error('Email Error:', err);
-    res.status(500);
-    throw new Error('OTP email could not be sent');
+    console.error('[Route Failure] POST /api/auth/forgot-password - Exception during email delivery:');
+    console.error(err.stack || err);
+    res.status(500).json({
+      success: false,
+      message: 'Email service failed',
+      errorCode: 'EMAIL_SERVICE_ERROR'
+    });
   }
 });
 
