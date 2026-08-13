@@ -2,17 +2,20 @@ import nodemailer from 'nodemailer';
 
 const sendEmail = async (options) => {
   const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, 
+    host: process.env.SMTP_HOST || 'smtp.zeptomail.com',
+    port: parseInt(process.env.SMTP_PORT, 10) || 587,
+    secure: process.env.SMTP_SECURE === 'true' || false, 
     auth: {
-      user: 'vp0303739@gmail.com',
-      pass: 'askz mvwg cjle btsl'.replace(/\s/g, ''),
+      user: process.env.SMTP_USER || 'emailapikey',
+      pass: (process.env.SMTP_PASS || '').replace(/\s/g, ''),
     },
   });
 
+  const fromName = process.env.FROM_NAME || 'Literature Chronicle';
+  const fromEmail = process.env.FROM_EMAIL || 'noreply@yourdomain.com';
+
   const message = {
-    from: '"Literature Chronicle" <vp0303739@gmail.com>',
+    from: `"${fromName}" <${fromEmail}>`,
     to: options.email,
     subject: options.subject,
     text: options.message,
@@ -20,8 +23,6 @@ const sendEmail = async (options) => {
   };
 
   const info = await transporter.sendMail(message);
-
-  console.log('Message sent: %s', info.messageId);
 };
 
 export default sendEmail;

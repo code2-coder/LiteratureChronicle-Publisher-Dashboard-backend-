@@ -31,6 +31,11 @@ const royaltySchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// Performance Indexes
+royaltySchema.index({ authorId: 1 });
+royaltySchema.index({ author_contact_number: 1 });
+royaltySchema.index({ payment_date: -1 });
+
 const Royalty = mongoose.model('Royalty', royaltySchema);
 
 export default Royalty;

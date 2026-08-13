@@ -11,6 +11,7 @@ export const getPaginatedSales = async (query = {}, options = {}) => {
     .limit(limit)
     .populate('platformId', 'commission_percentage')
     .populate('bookId', 'printing_cost format')
+    .populate('authorId', 'name')
     .lean();
 
   return {

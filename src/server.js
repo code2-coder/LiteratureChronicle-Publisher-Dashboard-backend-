@@ -12,6 +12,7 @@ import connectDB from './config/db.js';
 
 import authRoutes from './routes/authRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
+import imageRoutes from './routes/imageRoutes.js';
 import platformRoutes from './routes/platformRoutes.js';
 import saleRoutes from './routes/saleRoutes.js';
 import withdrawalRoutes from './routes/withdrawalRoutes.js';
@@ -98,26 +99,7 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
-
-// Development Redirect & Standalone Reset Page
-app.get('/reset-password/:token', (req, res) => {
-  let host = req.get('host');
-  // If local dev, redirect to Vite port 3000
-  if (host.includes('localhost') || host.includes('127.0.0.1')) {
-    const frontendURL = `${req.protocol}://${host.replace('8080', '3000')}/reset-password/${req.params.token}`;
-    return res.redirect(frontendURL);
-  }
-  
-  // In Production (Render/Vercel):
-  // Check if frontend build exists, if not, serve the built-in backend reset page
-  const indexHtml = path.resolve(frontendPath, 'index.html');
-  if (fs.existsSync(indexHtml)) {
-    res.sendFile(indexHtml);
-  } else {
-    res.sendFile(path.resolve(__dirname, 'reset-password.html'));
-  }
-});
-
+app.use('/api/images', imageRoutes);
 app.use('/api/platforms', platformRoutes);
 app.use('/api/sales', saleRoutes);
 app.use('/api/withdrawals', withdrawalRoutes);

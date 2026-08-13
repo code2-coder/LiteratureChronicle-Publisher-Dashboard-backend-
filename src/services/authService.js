@@ -6,24 +6,17 @@ import crypto from 'crypto';
 
 export const loginUser = async (email, password) => {
   const normalizedEmail = email ? email.trim().toLowerCase() : '';
-  console.log(`[Login Debug] Login email attempt: "${normalizedEmail}"`);
 
   const user = await User.findOne({ email: normalizedEmail });
   
   if (!user) {
-    console.log(`[Login Debug] User found or not: NOT found`);
     return null;
   }
   
-  console.log(`[Login Debug] User found or not: FOUND`);
-  console.log(`[Login Debug] Stored password exists: ${!!user.password}`);
-
   const isMatch = await user.matchPassword(password);
-  console.log(`[Login Debug] bcrypt.compare result: ${isMatch}`);
 
   if (isMatch) {
     const token = generateToken(user._id);
-    console.log(`[Login Debug] JWT generated: ${!!token}`);
     return {
       id: user._id,
       name: user.name,
@@ -295,24 +288,29 @@ export const adminUpdateUser = async (userId, updateFields) => {
   };
 };
 
-export const createPasswordResetToken = async (email) => {
+export const createPasswordResetOTP = async (email) => {
   const normalizedEmail = email ? email.trim().toLowerCase() : '';
   const user = await User.findOne({ email: normalizedEmail });
   if (!user) return null;
 
-  const resetToken = crypto.randomBytes(20).toString('hex');
-  user.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+  // Generate a random 6-digit numeric OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Hash and save OTP to user document
+  user.resetPasswordToken = crypto.createHash('sha256').update(otp).digest('hex');
+  user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   await user.save();
-  return resetToken;
+  return otp;
 };
 
-export const resetUserPassword = async (token, newPassword) => {
-  const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+export const resetUserPassword = async (email, otp, newPassword) => {
+  const normalizedEmail = email ? email.trim().toLowerCase() : '';
+  const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
 
   const user = await User.findOne({
-    resetPasswordToken: hashedToken,
+    email: normalizedEmail,
+    resetPasswordToken: hashedOtp,
     resetPasswordExpire: { $gt: Date.now() },
   });
 

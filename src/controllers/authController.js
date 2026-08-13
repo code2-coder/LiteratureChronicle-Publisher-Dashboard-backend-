@@ -99,46 +99,61 @@ export const updateUser = asyncHandler(async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @access  Public
 export const forgotPassword = asyncHandler(async (req, res) => {
-  const resetToken = await authService.createPasswordResetToken(req.body.email);
+  const { email } = req.body;
+  if (!email) {
+    res.status(400);
+    throw new Error('Please provide an email address');
+  }
 
-  if (!resetToken) {
+  const otp = await authService.createPasswordResetOTP(email);
+
+  if (!otp) {
     res.status(404);
     throw new Error('There is no user with that email');
   }
 
-  let host = req.get('host');
-  if (host.includes('8080')) {
-    host = host.replace('8080', '3000');
-  }
-  const resetUrl = `${req.protocol}://${host}/reset-password/${resetToken}`;
-
-  const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please click the link below to reset your password: \n\n ${resetUrl}`;
+  const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Your One-Time Password (OTP) is:\n\n${otp}\n\nThis OTP is valid for 10 minutes.`;
 
   try {
     await sendEmail({
-      email: req.body.email,
-      subject: 'Password Reset Token',
+      email,
+      subject: 'Password Reset OTP',
       message,
-      html: `<p>You requested a password reset. Click the link below to reset your password:</p><a href="${resetUrl}">${resetUrl}</a>`
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 5px;">
+          <h2 style="color: #333;">Password Reset OTP</h2>
+          <p>You requested a password reset. Use the following 6-digit One-Time Password (OTP) to reset your password:</p>
+          <div style="background-color: #f7f7f7; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 5px; border: 1px dashed #ccc;">
+            ${otp}
+          </div>
+          <p style="color: #666; font-size: 12px;">This OTP is valid for 10 minutes. If you did not request this reset, please ignore this email.</p>
+        </div>
+      `
     });
 
-    res.status(200).json({ success: true, data: 'Email sent' });
+    res.status(200).json({ success: true, message: 'OTP sent successfully' });
   } catch (err) {
     console.error('Email Error:', err);
     res.status(500);
-    throw new Error('Email could not be sent');
+    throw new Error('OTP email could not be sent');
   }
 });
 
 // @desc    Reset Password
-// @route   PUT /api/auth/reset-password/:resettoken
+// @route   POST /api/auth/reset-password
 // @access  Public
 export const resetPassword = asyncHandler(async (req, res) => {
-  const user = await authService.resetUserPassword(req.params.resettoken, req.body.password);
+  const { email, otp, password } = req.body;
+  if (!email || !otp || !password) {
+    res.status(400);
+    throw new Error('Please provide email, OTP, and new password');
+  }
+
+  const user = await authService.resetUserPassword(email, otp, password);
 
   if (!user) {
     res.status(400);
-    throw new Error('Invalid token');
+    throw new Error('Invalid OTP or OTP expired');
   }
 
   res.status(200).json({

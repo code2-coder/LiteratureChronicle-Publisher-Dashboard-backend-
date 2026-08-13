@@ -32,6 +32,10 @@ const withdrawalRequestSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+// Performance Indexes
+withdrawalRequestSchema.index({ authorId: 1 });
+withdrawalRequestSchema.index({ requested_at: -1 });
+
 const WithdrawalRequest = mongoose.model('WithdrawalRequest', withdrawalRequestSchema);
 
 export default WithdrawalRequest;
