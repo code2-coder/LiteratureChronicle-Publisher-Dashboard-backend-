@@ -61,7 +61,7 @@ const sendEmail = async (options) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `zoho-enczapikey ${apiToken}`,
+        'Authorization': `Zoho-enczapikey ${apiToken}`,
       },
       body: JSON.stringify(payload),
     });
