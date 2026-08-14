@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import * as bookService from '../services/bookService.js';
+import User from '../models/User.js';
 
 // @desc    Get all books
 // @route   GET /api/books
@@ -21,11 +22,21 @@ const getBooks = asyncHandler(async (req, res) => {
 
   // Search filter
   if (search) {
+    // Find authors matching the search name
+    const matchedAuthors = await User.find({
+      name: { $regex: search, $options: 'i' }
+    }).select('_id');
+    const authorIds = matchedAuthors.map(author => author._id);
+
     query.$or = [
       { title: { $regex: search, $options: 'i' } },
       { isbn: { $regex: search, $options: 'i' } },
       { sku_code: { $regex: search, $options: 'i' } }
     ];
+
+    if (authorIds.length > 0) {
+      query.$or.push({ authorId: { $in: authorIds } });
+    }
   }
 
   const result = await bookService.getAllBooks(query, { page, limit });

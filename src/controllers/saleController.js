@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import * as saleService from '../services/saleService.js';
+import User from '../models/User.js';
 
 // @desc    Get all sales
 // @route   GET /api/sales
@@ -27,11 +28,20 @@ export const getSales = asyncHandler(async (req, res) => {
 
   // Search Logic (Basic search by title or ISBN)
   if (search) {
+    const matchedAuthors = await User.find({
+      name: { $regex: search, $options: 'i' }
+    }).select('_id');
+    const authorIds = matchedAuthors.map(author => author._id);
+
     query.$or = [
       { title: { $regex: search, $options: 'i' } },
       { isbn: { $regex: search, $options: 'i' } },
       { order_id: { $regex: search, $options: 'i' } }
     ];
+
+    if (authorIds.length > 0) {
+      query.$or.push({ authorId: { $in: authorIds } });
+    }
   }
 
   const result = await saleService.getPaginatedSales(query, { page, limit });
@@ -63,11 +73,20 @@ export const getSalesStats = asyncHandler(async (req, res) => {
 
   // Search Logic (Basic search by title or ISBN)
   if (search) {
+    const matchedAuthors = await User.find({
+      name: { $regex: search, $options: 'i' }
+    }).select('_id');
+    const authorIds = matchedAuthors.map(author => author._id);
+
     query.$or = [
       { title: { $regex: search, $options: 'i' } },
       { isbn: { $regex: search, $options: 'i' } },
       { order_id: { $regex: search, $options: 'i' } }
     ];
+
+    if (authorIds.length > 0) {
+      query.$or.push({ authorId: { $in: authorIds } });
+    }
   }
 
   const stats = await saleService.getSalesStats(query);
