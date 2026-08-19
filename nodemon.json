@@ -9,5 +9,5 @@
     "*.json"
   ],
   "delay": 1000,
-  "exec": "node src/server.js"
+  "exec": "node"
 }

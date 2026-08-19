@@ -91,3 +91,47 @@ export const bulkUploadRoyalties = asyncHandler(async (req, res) => {
   const insertedRoyalties = await royaltyService.bulkUploadRoyalties(royalties);
   res.status(201).json({ count: insertedRoyalties.length });
 });
+
+// @desc    Get pending royalties ledger and summary across authors
+// @route   GET /api/royalties/pending
+// @access  Private/Admin
+export const getPendingRoyalties = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const {
+    search,
+    minAmount,
+    paymentStatus = 'all',
+    sortBy = 'balance',
+    sortOrder = 'desc',
+    all = false
+  } = req.query;
+
+  const result = await royaltyService.getPendingRoyaltiesData({
+    page,
+    limit,
+    search,
+    minAmount,
+    paymentStatus,
+    sortBy,
+    sortOrder,
+    all: all === 'true' || all === true
+  });
+
+  res.json(result);
+});
+
+// @desc    Get detailed royalty and sales breakdown for a single author
+// @route   GET /api/royalties/pending/:authorId/breakdown
+// @access  Private/Admin
+export const getAuthorRoyaltyBreakdown = asyncHandler(async (req, res) => {
+  const result = await royaltyService.getAuthorDetailedRoyaltyBreakdown(req.params.authorId);
+
+  if (!result) {
+    res.status(404);
+    throw new Error('Author breakdown not found');
+  }
+
+  res.json(result);
+});
+
